@@ -1,0 +1,222 @@
+---
+title: 'Laboratorio 1.1: Exploración y Visualización de Datos'
+date: "Septiembre 2021"
+author: 'Millaray Valdivia Saldias, Ignacio Díaz Lara'
+output:
+  html_document:
+    theme: default
+    toc: no
+  pdf_document:
+    toc: no
+---
+
+
+# Declaración de compromiso ético
+Nosotros **AGREGUEN SUS NOMBRES COMPLETOS**, declaramos que realizamos de manera grupal los pasos de la presente actividad. También declaramos no incurrir en copia, ni compartir nuestras respuestas con otras personas ni con otros grupos. Por lo que, ratificamos que las respuestas son de nuestra propia confección y reflejan nuestro propio conocimiento.
+
+
+# Instrucciones
+
+1. Trabajen en equipos de dos personas. Salvo excepciones, no se corregirá entregas con menos de dos integrantes.
+
+2. Modifique este archivo `.Rmd` agregando sus respuestas donde corresponda.
+
+3. Para cada pregunta, cuando corresponda, **incluya el código fuente que utilizó para llegar a su respuesta**.
+
+4. El formato de entrega para esta actividad es un archivo html. **Genere un archivo HTML usando RStudio** y súbalo a U-Cursos.
+  
+Basta con que uno de los integrantes haga la entrega. Si ambos hacen una entrega en U-Cursos, se revisará cualquiera de éstas.
+
+# Laboratorio 
+La primera parte de esta actividad son preguntas teóricas que avanzaron en las clases del curso de Minería de datos.
+
+## Teoría
+
+*1. ¿Cuál es el objetivo de Minería de datos y qué la diferencia de Machine Learning? De un ejemplo para explicar la diferencia.*
+
+**Respuesta: La minería de datos extrae información automáticamente con el fin de generar conocimientos, mientras que el machine learning busca generar predicciones desarrollando algoritmos. La minería de datos puede utilizar el machine learning como herramienta.**
+
+*2. Describa y compare los siguientes métodos usados en Minería de datos: clasificación vs. clustering.*
+
+**Respuesta: Clasificación es asignar la clase más correcta a los datos. El clustering busca los puntos que sean similares entre sí. Comparando la clasificación sería intentar encontrar una clase previamente descrita de los datos, mientras que el clustering busca encontrar patrones para clasificar los datos en grupos.**
+
+*3. ¿Qué es el análisis exploratorio de datos o EDA?*
+
+**Respuesta: Es un conjunto de técnicas que se utilizan para comprender y explorar la naturaleza de un dataset.**
+
+*4. Explique cómo se identifican los valores atípicos u outliers en un boxplot.*
+
+**Respuesta: En un boxplot los outliers se posicionan por encima de los brazos superiores del boxplot o por debajo de los brazos inferiores y representan a un punto muy alejado de la mediana.**
+
+## Práctica
+En esta parte de la actividad se trabajará con los datos del Proceso Constituyente 2016-2017 publicados en el Portal de Datos Abiertos del Gobierno de Chile, para mayor información pueden ingresar al siguiente link: https://datos.gob.cl/dataset/proceso-constituyente-abierto-a-la-ciudadania. Los datos corresponden a las actas de los Encuentros Locales Autoconvocados (ELAs), en cada cual, un grupo de personas se reune a discutir distintos conceptos como por ejemplo: salud, educación, seguridad, etc.
+
+Los datos con los que trabajarán consisten en la cantidad de veces que cada concepto constitucional fue mencionado por cada localidad de Chile. 
+
+Para cargar los datos, use:
+
+```{r}
+data_tf <- read.csv("http://dcc.uchile.cl/~hsarmien/mineria/datasets/actas.txt", header = T)
+```
+
+**Por cada pregunta adjunte el código R que utilizó para llegar a la respuesta. Respuestas sin código no recibirán puntaje**
+
+### Exploración básica
+
+1. ¿Cuáles son las dimensiones del dataset (filas, columnas)? Adjunte código o indique cómo determinó la cantidad de datos total. 
+
+```{r}
+dim(data_tf)
+```
+
+2. ¿Qué describe cada línea del dataset? (ejemplifique tomando la fila 45)
+
+```{r}
+data_tf[45,]
+```
+
+3. ¿Existen localidades repetidas en el dataset? Adjunte el código o indique cómo llegó a esa conclusión. 
+
+No existen localidades que aparezcan más de una vez.
+
+```{r}
+library(tidyverse)
+data_tf %>%           
+  count(localidad, name="cantidad") %>%  # contamos las localidades en una columna que nombramos cantidad
+  filter(cantidad>1)  # filtramos para que sólo aparezcan las que salen más de una vez
+```
+
+
+
+### Análisis
+
+1. Liste todas las localidades donde *no* se discutió el concepto `justicia`. 
+
+```{r}
+data_tf %>%  
+  filter(justicia==0) %>% # filtramos donde no se discutió justicia
+  select(localidad) # seleccionamos sólo la columna localidad
+  
+```
+
+2. Liste las 10 localidades que más mencionaron el concepto `al_trabajo`. 
+
+```{r}
+al_t <- data_tf %>%
+  select(localidad, al_trabajo) %>%  # seleccinamos localidad y al_trabajo
+  arrange(-al_trabajo)  # ordenamos decrecientemente
+al_t[1:10,]  # visualizamos las primeras diez filas
+```
+
+
+3. Liste los 10 conceptos más mencionados a lo largo de todo el proceso.
+
+```{r}
+library("reshape")
+conceptos <- melt(data_tf, id=c("localidad")) # reformateamos la tabla para dejar los conceptos en una columna
+conceptos_filtrados <- conceptos %>%           
+  group_by(variable) %>%  # agrupamos por los conceptos
+  summarise(total = sum(value)) %>%  # sumamos la cantidad de apariciones de los conceptos
+  arrange(-total)  # ordenamos decrecientemente
+conceptos_filtrados[1:10,]  # visualizamos los 10 primeros
+```
+
+
+4. Liste las 10 localidades que más participaron en el proceso. Describa cómo definió su medida de participación.
+
+
+```{r}
+conceptos <- melt(data_tf, id=c("localidad"))  # reformateamos la tabla para dejar los conceptos en una columna
+
+conceptos_filtrados <- conceptos %>%           
+  group_by(localidad) %>%  #agrupamos por localidad
+  summarise(total = sum(value)) %>%  #sumamos la cantidad de apariciones de los conceptos en la localidad
+  arrange(-total)  # ordenamos decrecientemente
+conceptos_filtrados[1:10,]  #visualizamos los 10 primeros datos
+```
+
+
+5. Ejecute el siguiente código que permitirá agregar una nueva columna a nuestro dataframe que solo tendrá el nombre de la región.
+
+```{r, message = F, warning=F}
+library(dplyr)
+regiones <- strsplit(as.character(data_tf[,1]), '/')
+data_tf$region <- sapply(regiones, "[[", 1)
+data_tf <- data_tf %>% select(localidad, region, everything())
+```
+
+Luego, genere un gráfico de barras (ggplot) que muestre los 10 conceptos más mencionados en cada una de las regiones mencionadas (adjunte gráficos y código):
+
+- `Coquimbo`
+- `Antofagasta`
+- `Metropolitana de Santiago`
+
+
+Cabe resaltar, que se esperan tres gráficos de barras para las tres diferentes regiones:
+
+
+```{r, fig.width=6, fig.height=2.5}
+# 10 conceptos más mencionados en Coquimbo
+conceptos_coquimbo <- melt(data_tf, id=c("localidad", "region"))  # reformateamos la tabla para dejar los conceptos en una columna
+
+conceptos_filtrados_coquimbo <- conceptos_coquimbo %>%
+  filter(region=="Coquimbo")  %>%  # filtramos dejando sólo la región de coquimbo
+  group_by(variable) %>%  #agrupamos por los conceptos
+  summarise(total = sum(value)) %>%  # sumamos la cantidad de apariciones de los conceptos
+  arrange(-total)  # ordenamos decrecientemente
+
+conceptos_filtrados_coquimbo <- conceptos_filtrados_coquimbo[1:10,]  #dejamos sólo los primeros 10 valores
+
+library(ggplot2)
+# gráfico de visualización
+ggplot(conceptos_filtrados_coquimbo) +
+  geom_bar(aes(x = total, y = variable), stat="identity") +
+  #coord_flip() +
+  ggtitle("10 conceptos más mencionados en Coquimbo") + 
+  xlab("Región (descripción)") + ylab("Frecuencia (cantidad)") 
+```
+
+```{r, fig.width=6, fig.height=2.5}
+# 10 conceptos más mencionados en Antofagasta
+conceptos_antofagasta <- melt(data_tf, id=c("localidad", "region"))  # reformateamos la tabla para dejar los conceptos en una columna
+
+conceptos_filtrados_antofagasta <- conceptos_antofagasta %>%
+  filter(region=="Antofagasta")  %>%  # filtramos dejando sólo la región de antofagasta
+  group_by(variable) %>%  #agrupamos por los conceptos
+  summarise(total = sum(value)) %>%  # sumamos la cantidad de apariciones de los conceptos
+  arrange(-total)  # ordenamos decrecientemente
+
+conceptos_filtrados_antofagasta <- conceptos_filtrados_antofagasta[1:10,]  #dejamos sólo los primeros 10 valores
+
+
+# gráfico de visualización
+ggplot(conceptos_filtrados_antofagasta) +
+  geom_bar(aes(x = total, y = variable), stat="identity") +
+  #coord_flip() +
+  ggtitle("10 conceptos más mencionados en Antofagasta") + 
+  xlab("Región (descripción)") + ylab("Frecuencia (cantidad)") 
+```
+
+```{r, fig.width=6, fig.height=2.5}
+# 10 conceptos más mencionados en Metropolitana de Santiago
+conceptos_santiago <- melt(data_tf, id=c("localidad", "region"))  # reformateamos la tabla para dejar los conceptos en una columna
+
+conceptos_filtrados_santiago <- conceptos_santiago %>%
+  filter(region=="Metropolitana de Santiago")  %>% # filtramos dejando sólo la región metropolitana de santiago
+  group_by(variable) %>%  #agrupamos por los conceptos
+  summarise(total = sum(value)) %>%  # sumamos la cantidad de apariciones de los conceptos
+  arrange(-total)  # ordenamos decrecientemente
+
+conceptos_filtrados_santiago <- conceptos_filtrados_santiago[1:10,]  #dejamos sólo los primeros 10 valores
+
+
+# gráfico de visualización
+ggplot(conceptos_filtrados_santiago) +
+  geom_bar(aes(x = total, y = variable), stat="identity") +
+  ggtitle("10 conceptos más mencionados en Metropolitana de Santiago") + 
+  xlab("Región (descripción)") + ylab("Frecuencia (cantidad)")
+```
+
+6. De la pregunta anterior, ¿considera que es razonable usar el conteo de frecuencias para determinar las regiones que tuvieron mayor participación en el proceso? ¿Por qué? Sugiera y solamente comente una forma distinta de hacerlo.
+
+**Respuesta: No creemos que sea la mejor forma de medir participación, si no de interés de temáticas por localidad. Otra forma que creemos que es mejor es contabilizar a la cantidad de personas que asistieron y analizar qué porcentaje de gente vive en la región, para tener una proporción de participación de personas por región.**

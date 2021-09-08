@@ -1,0 +1,162 @@
+---
+title: 'Laboratorio 1.2: Exploración y Visualización de Datos'
+author: "Millaray Valdivia Saldias, Ignacio Díaz Lara"
+date: "Septiembre 2021"
+output: 
+  html_document: 
+    theme: default
+    toc: yes
+---
+
+# Declaración de compromiso ético
+Nosotros **AGREGUEN SUS NOMBRES COMPLETOS**, declaramos que realizamos de manera grupal los pasos de la presente actividad. También declaramos no incurrir en copia, ni compartir nuestras respuestas con otras personas ni con otros grupos. Por lo que, ratificamos que las respuestas son de nuestra propia confección y reflejan nuestro propio conocimiento.
+
+
+# Instrucciones
+
+1. Trabajen en equipos de dos personas. Salvo excepciones, no se corregirá entregas con menos de dos integrantes.
+
+2. Modifique este archivo `.Rmd` agregando sus respuestas donde corresponda.
+
+3. Para cada pregunta, cuando corresponda, **incluya el código fuente que utilizó para llegar a su respuesta**.
+
+4. El formato de entrega para esta actividad es un archivo html. **Genere un archivo HTML usando RStudio** y súbalo a U-Cursos.
+  
+Basta con que uno de los integrantes haga la entrega. Si ambos hacen una entrega en U-Cursos, se revisará cualquiera de éstas.
+
+# Laboratorio 
+La primera parte de esta actividad son preguntas teóricas que avanzaron en las clases del curso de Minería de datos.
+
+## Teoría
+
+*1. Respecto a los tipos de atributo, ¿cuál es la diferencia entre razón e intervalo? De un ejemplo.*
+
+**Respuesta: La razón parte desde un cero absoluto y puede multiplicarse y divirse, mientras que el intervalo puede sumarse y restarse. Ejemplo los grados kelvin parten de un cero absoluto y no tiene números negativos, mientras que los grados celsius tienen un cero arbitrario por lo que puede tener números positivos y negativos.**
+
+*2. ¿Qué factores que ocasionan errores en el análisis de datos deben ser considerados para la limpieza de un set de datos?*
+
+**Respuesta: Ruido, outliers, datos faltantes, datos duplicados y sesgo.**
+
+*3. Describa las medidas de tendencia central: media y mediana. Exponga la diferencia entre ambas.*
+
+**Respuesta: La mediana es la que representa la posición central de las variables, separando la mitad inferior y la mitad superior de las observaciones. La media es el promedio o media aritmética para m valores. Dentro de las diferencias que podemos encontrar está que la media es más sensible a los outliers (y otros ruidos) que la mediana**
+
+*4. ¿Qué es una matriz de correlación y para qué sirve?*
+
+**Respuesta: Una matriz de correlación es un gráfico donde se puede ver como se relaciona cada par de atributos del data-frame y sirve para ver cuales variables tienen mayor relación e influyen más en otras y así distinguir patrones en los datos.**
+
+*5. Explique el principio de Bonferroni y su utilidad.*
+
+**Respuesta: El principio de Bonferroni indica que si se busca mucho más de lo que la cantidad de datos permiten se puede encontrar basura. Así, se podría creer que se probó una hipótesis con falsos positivos o correlaciones que no implican causalidad. Se utiliza para encontrar un límite superior en la precisión de los métodos utilizados.**
+
+## Práctica 
+
+Para esta sección utilizaremos un dataset real de número de accidentes de tránsito por localidad, el cual puede ser encontrado en el siguiente link: http://datos.gob.cl/dataset/9348. Para cargar el dataset ejecute el siguiente código:
+
+```{r}
+tipos <- read.table("https://users.dcc.uchile.cl/~hsarmien/mineria/datasets/accidentes_2010_2011.txt", encoding = "UTF-8")
+head(tipos)
+# agregamos el encoding por los símbolos
+```
+
+Explore el set de datos para responder las siguientes preguntas:
+
+1. ¿Cuáles son las dimensiones del dataset (filas, columnas)? (Recuerde adjuntar código).
+
+```{r}
+dim(tipos)
+```
+
+2. ¿Qué describe cada línea del dataset? (ejemplifique tomando el dato de la fila 235, extienda la descripción)
+
+```{r}
+tipos[235, ]
+# De esto podemos inferir que el dataset describe la cantidad de accidentes y el tipo de estos, según año en una locación que lleva el nombre de Descripción, y el tipo de la locación que lleva el nombre de muestra.
+```
+
+3. Filtre los datos y genere un dataframe en el cual se indique la cantidad de accidentes tipo ``Colision`` que hubo en el año ``2011``.
+
+```{r}
+library(tidyverse)
+colision2011 <- tipos %>% 
+  filter(Anio == 2011 & TipoAccidente == "Colision") %>%  # filtra por año 2011 y tipo de accidente colisión
+  group_by(TipoAccidente) %>%  # agrupa por el tipo de accidente
+  summarise(total_2011 = sum(Cantidad))  #suma los accidentes agrupados en el tipo de accidente
+colision2011
+
+```
+
+4. Filtre los datos para incluir sólo los accidentes ocurridos el año 2010 a nivel regional. Genere un boxplot donde se indique la cantidad de accidentes categorizado por tipo de accidente.
+
+Este tipo de gráfico nos ayudará a entender como se distribuye los datos por cada tipo de accidentes. Es decir, podremos apreciar que tan dispersos o similares son los datos en todo el dataset. También, puede ser útil para observar valores atípicos u outliers en los datos.
+
+```{r}
+library(ggplot2)
+tipos_reg <- with(tipos, tipos[Anio == 2010 & Muestra == "Regional", ]) #  filtro por año 2010 y muestra regional 
+ggplot(tipos_reg, aes(x = TipoAccidente, y= Cantidad)) + 
+  geom_boxplot()  # genera el plot con boxplot
+```
+
+5. ¿Qué otra forma de explorar los datos podría agregar para el dataset de Accidentes de tránsito y qué información adicional aporta? Adjunte el código necesario.
+
+```{r}
+accidentes_por_comuna <- tipos %>%
+  filter(Muestra == "Comunal") %>%   #filtra por muestra comunal
+  group_by(Descripcion) %>%   # agrupa por descripción
+  summarise(total = sum(Cantidad)) %>%  # suma la cantidad de accidentes agrupadas por descripción
+  arrange(-total)  # ordena decrecientemente el total
+
+accidentes_por_region <- tipos %>%
+  filter(Muestra == "Regional") %>%   #filtra por muestra regional
+  group_by(Descripcion) %>%   # agrupa por descripción 
+  summarise(total = sum(Cantidad)) %>%  # suma la cantidad de accidentes agrupadas por descripción
+  arrange(-total)  # ordena decrecientemente el total
+
+
+accidentes_por_region
+accidentes_por_comuna
+
+# Estas tablas entregan información adicional al mostrar qué comunas y qué regiones son las que tienen más accidentes. Gracias a esto, podemos ver, por ejemplo, que hay comunas como Santiago o Rancagua que tienen más accidentes que regiones enteras, como la Región de Atacama o Aysén.
+```
+
+
+### Diamantes
+
+Considere el set de datos diamonds del paquete ggplot2 de R, que contiene los precios en dolares, junto con otros atributos importantes: quilates, corte, color y claridad. También hay medidas físicas como ser: x (largo), y (ancho), z (profundidad), depth (porcentaje total de profundidad) y table (ancho desde el tope del diamante al punto relativo más ancho del diamante):
+
+```{r}
+library(ggplot2)
+data("diamonds")
+head(diamonds)
+```
+
+Realice una exploración por el set de datos para responder las siguientes preguntas:
+
+1. Teniendo en cuenta las medidas físicas, ¿considera que existen valores inexistentes o inconsistentes? Describa como manejaría esta situación. Adjunte el código necesario.
+
+```{r}
+# Existen valores inexistentes tales como diamantes que miden (0, 0, 0), e inconsistentes ya que a pesar de tener ciertas medidas iguales a 0, tienen un valor de profundidad que no lo es. Esto se puede manejar eliminando estos datos filtrando la tabla 'diamonds', ya que si se quieren estudiar los datos desde el punto de vista físico, esto solo genera basura y no aportan al estudio.
+diamonds2 <- diamonds %>% 
+  filter(x != 0 & y != 0 & z != 0)%>%
+  arrange(z)
+diamonds2
+```
+
+2. Considere la relación entre dos atributos y adjunte el código necesario para las respuestas:
+* ¿Qué atributos están más correlacionadas con precio (price) y qué significa esto?
+* ¿Cuál es la correlación más alta para table?
+
+```{r}
+# Sacamos el coeficiente de correlación de Pearson entre table, price con todas las columnas numéricas del dataset.
+cor(diamonds[,6:7], diamonds[,5:10])
+cor(diamonds[,6:7], diamonds[,1])
+
+# Con estos resultados podemos concluir que el precio está más correlacionado linealmente con carat que son los quilates (0.9215913). Por lo tanto, mientras más quilates más alto el precio.
+
+# Y también que la variable table (que representa el ancho desde el tope del diamante al punto relativo más ancho del diamante) está más correlacionado linealmente con x (0.1953443). A pesar de ser una correlación más baja, tiene sentido que una medida del ancho del diamente se relacione con una medida de longitud del diamante. 
+```
+
+3. Proponga otra forma para explorar los datos. ¿Qué información adicional aporta? Adjunte una breve explicación.
+
+**Respuesta: Proponemos agregar una variable volumen que multiplique las columnas x,y,z. Esto podría agregar información sobre el tamaño más general del diamante y cómo se relaciona con las otras columnas no físicas, como el precio.**
+
